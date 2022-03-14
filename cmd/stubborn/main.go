@@ -15,8 +15,8 @@ import (
 	"github.com/artnoi43/stubborn/config"
 	"github.com/artnoi43/stubborn/lib/cacher"
 	"github.com/artnoi43/stubborn/lib/dohclient"
+	"github.com/artnoi43/stubborn/lib/handler"
 	"github.com/artnoi43/stubborn/lib/rediswrapper"
-	"github.com/artnoi43/stubborn/lib/server"
 )
 
 var (
@@ -40,9 +40,9 @@ func main() {
 	ctx := context.Background()
 	redisCli := rediswrapper.New(ctx, &conf.RedisConfig)
 	cacher := cacher.New(&conf.CacherConfig, redisCli)
-	dnsServer := server.NewDNSServer(&conf.ServerConfig)
+	dnsServer := handler.NewDNSServer(&conf.ServerConfig)
 	dohClient := dohclient.New()
-	server := server.New(ctx, &conf.ServerConfig, dnsServer, dohClient, cacher)
+	handler := handler.New(ctx, &conf.ServerConfig, dnsServer, dohClient, cacher)
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(
@@ -57,15 +57,15 @@ func main() {
 	go func() {
 		defer wg.Done()
 		<-sigChan
-		server.DnsServer.Shutdown()
-		server.DohClient.Close()
-		server.Cacher.Redis.Cli.FlushDB(ctx)
-		server.Cacher.Redis.Cli.Close()
+		handler.DnsServer.Shutdown()
+		handler.DohClient.Close()
+		handler.Cacher.Redis.Cli.FlushDB(ctx)
+		handler.Cacher.Redis.Cli.Close()
 		log.Println("Shutting down workers")
 	}()
 
-	dns.HandleFunc(".", server.HandleDnsReq)
-	if err := server.Start(); err != nil {
+	dns.HandleFunc(".", handler.HandleDnsReq)
+	if err := handler.Start(); err != nil {
 		log.Fatalln("DNS Server error", err.Error())
 	}
 	wg.Wait()

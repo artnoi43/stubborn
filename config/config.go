@@ -7,12 +7,12 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/artnoi43/stubborn/lib/cacher"
+	"github.com/artnoi43/stubborn/lib/handler"
 	"github.com/artnoi43/stubborn/lib/rediswrapper"
-	"github.com/artnoi43/stubborn/lib/server"
 )
 
 type Config struct {
-	ServerConfig server.Config       `mapstructure:"server"`
+	ServerConfig handler.Config      `mapstructure:"server"`
 	CacherConfig cacher.Config       `mapstructure:"cacher"`
 	RedisConfig  rediswrapper.Config `mapstructure:"redis"`
 }

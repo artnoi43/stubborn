@@ -1,4 +1,4 @@
-package server
+package handler
 
 import (
 	"context"
@@ -13,10 +13,9 @@ import (
 
 	"github.com/artnoi43/stubborn/lib/cacher"
 	"github.com/artnoi43/stubborn/lib/dohclient"
-	"github.com/artnoi43/stubborn/lib/enums"
 )
 
-type Server struct {
+type Handler struct {
 	Ctx       context.Context
 	Config    *Config
 	DnsServer *dns.Server
@@ -34,10 +33,10 @@ func NewDNSServer(conf *Config) *dns.Server {
 	}
 }
 
-func New(ctx context.Context, conf *Config, s *dns.Server, h *doh.DoH, c *cacher.Cacher) *Server {
+func New(ctx context.Context, conf *Config, s *dns.Server, h *doh.DoH, c *cacher.Cacher) *Handler {
 	j, _ := json.Marshal(conf)
 	log.Printf("DNS server configuration:\n%s\n", j)
-	return &Server{
+	return &Handler{
 		Ctx:       ctx,
 		Config:    conf,
 		DnsServer: s,
@@ -55,16 +54,16 @@ func NewRR(dom string, t string, v string) (dns.RR, error) {
 	return rr, nil
 }
 
-func (s *Server) Action(m *dns.Msg) error {
-	dohFunc := dohclient.FuncMap[s.Config.AllTypes]
+func (h *Handler) Action(m *dns.Msg) error {
+	dohFunc := dohclient.FuncMap[h.Config.AllTypes]
 	for _, q := range m.Question {
 		// First we look in cache
-		t, supported := enums.DnsTypes[q.Qtype]
+		t, supported := dnsTypes[q.Qtype]
 		if !supported {
 			return fmt.Errorf("unsupported DNS record type: %d", q.Qtype)
 		}
 		k := cacher.NewKey(q.Name, t, -1)
-		answers, err := s.Cacher.HGet(k)
+		answers, err := h.Cacher.HGet(k)
 		if answers != nil && err == nil {
 			for _, answer := range answers {
 				rr, err := NewRR(q.Name, t, answer)
@@ -77,11 +76,11 @@ func (s *Server) Action(m *dns.Msg) error {
 			// Then we use DoH to query uncached domains
 			log.Println("All cache missed:", k.MemCacheKey())
 			dom := dohdns.Domain(q.Name)
-			t, supported := enums.DnsTypes[q.Qtype]
+			t, supported := dnsTypes[q.Qtype]
 			if !supported {
 				return fmt.Errorf("unsupported DNS record type: %d", q.Qtype)
 			}
-			dohAnswers, err := dohFunc(s.Ctx, s.DohClient, dom, dohdns.Type(t))
+			dohAnswers, err := dohFunc(h.Ctx, h.DohClient, dom, dohdns.Type(t))
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("failed to get DoH answer for %s", dom))
 			}
@@ -92,7 +91,7 @@ func (s *Server) Action(m *dns.Msg) error {
 			}
 			answerMap := make(answerMap)
 			for _, dohAnswer := range dohAnswers {
-				t, supported := enums.DnsTypes[uint16(dohAnswer.Type)]
+				t, supported := dnsTypes[uint16(dohAnswer.Type)]
 				if !supported {
 					return fmt.Errorf("unsupported DNS record type: %d", q.Qtype)
 				}
@@ -105,7 +104,7 @@ func (s *Server) Action(m *dns.Msg) error {
 				answerMap[k] = append(answerMap[k], dohAnswer.Data)
 			}
 			for k, a := range answerMap {
-				if err := s.Cacher.HSet(k, a); err != nil {
+				if err := h.Cacher.HSet(k, a); err != nil {
 					return err
 				}
 			}
@@ -114,7 +113,7 @@ func (s *Server) Action(m *dns.Msg) error {
 	return nil
 }
 
-func (s *Server) HandleDnsReq(w dns.ResponseWriter, r *dns.Msg) {
+func (h *Handler) HandleDnsReq(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg).SetReply(r)
 	m.Compress = false
 	m.RecursionDesired = true
@@ -122,14 +121,14 @@ func (s *Server) HandleDnsReq(w dns.ResponseWriter, r *dns.Msg) {
 
 	switch r.Opcode {
 	case dns.OpcodeQuery:
-		if err := s.Action(m); err != nil {
+		if err := h.Action(m); err != nil {
 			log.Println("Action error:", err.Error())
 		}
 	}
 	w.WriteMsg(m)
 }
 
-func (s *Server) Start() error {
-	log.Println("Starting stubborn DNS resolver on", s.Config.Address)
-	return s.DnsServer.ListenAndServe()
+func (h *Handler) Start() error {
+	log.Println("Starting stubborn DNS resolver on", h.Config.Address)
+	return h.DnsServer.ListenAndServe()
 }

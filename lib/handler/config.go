@@ -1,4 +1,4 @@
-package server
+package handler
 
 type Config struct {
 	Address  string `mapstructure:"address" json:"address"`
