@@ -57,9 +57,10 @@ func main() {
 	go func() {
 		defer wg.Done()
 		<-sigChan
+		server.DnsServer.Shutdown()
+		server.DohClient.Close()
 		server.Cacher.Redis.Cli.FlushDB(ctx)
 		server.Cacher.Redis.Cli.Close()
-		server.DnsServer.Shutdown()
 		log.Println("Shutting down workers")
 	}()
 

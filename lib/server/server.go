@@ -13,6 +13,7 @@ import (
 
 	"github.com/artnoi43/stubborn/lib/cacher"
 	"github.com/artnoi43/stubborn/lib/dohclient"
+	"github.com/artnoi43/stubborn/lib/enums"
 )
 
 type Server struct {
@@ -58,7 +59,7 @@ func (s *Server) Action(m *dns.Msg) error {
 	dohFunc := dohclient.FuncMap[s.Config.AllTypes]
 	for _, q := range m.Question {
 		// First we look in cache
-		t, supported := dnsTypes[q.Qtype]
+		t, supported := enums.DnsTypes[q.Qtype]
 		if !supported {
 			return fmt.Errorf("unsupported DNS record type: %d", q.Qtype)
 		}
@@ -76,7 +77,7 @@ func (s *Server) Action(m *dns.Msg) error {
 			// Then we use DoH to query uncached domains
 			log.Println("All cache missed:", k.MemCacheKey())
 			dom := dohdns.Domain(q.Name)
-			t, supported := dnsTypes[q.Qtype]
+			t, supported := enums.DnsTypes[q.Qtype]
 			if !supported {
 				return fmt.Errorf("unsupported DNS record type: %d", q.Qtype)
 			}
@@ -91,7 +92,7 @@ func (s *Server) Action(m *dns.Msg) error {
 			}
 			answerMap := make(answerMap)
 			for _, dohAnswer := range dohAnswers {
-				t, supported := dnsTypes[uint16(dohAnswer.Type)]
+				t, supported := enums.DnsTypes[uint16(dohAnswer.Type)]
 				if !supported {
 					return fmt.Errorf("unsupported DNS record type: %d", q.Qtype)
 				}
