@@ -65,6 +65,7 @@ func main() {
 	}()
 
 	dns.HandleFunc(".", handler.HandleDnsReq)
+	dns.HandleFunc("local.", handler.HandleLocalDnsReq)
 	if err := handler.Start(); err != nil {
 		log.Fatalln("DNS Server error", err.Error())
 	}

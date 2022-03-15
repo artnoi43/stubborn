@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/likexian/doh-go"
 	dohdns "github.com/likexian/doh-go/dns"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/artnoi43/stubborn/lib/cacher"
 	"github.com/artnoi43/stubborn/lib/dohclient"
+	"github.com/artnoi43/stubborn/lib/enums"
 )
 
 type Handler struct {
@@ -54,7 +56,7 @@ func NewRR(dom string, t string, v string) (dns.RR, error) {
 	return rr, nil
 }
 
-func (h *Handler) Action(m *dns.Msg) error {
+func (h *Handler) Handle(m *dns.Msg) error {
 	dohFunc := dohclient.FuncMap[h.Config.AllTypes]
 	for _, q := range m.Question {
 		// First we look in cache
@@ -113,6 +115,26 @@ func (h *Handler) Action(m *dns.Msg) error {
 	return nil
 }
 
+// Handle local A record DNS queries
+func (h *Handler) HandleLocal(m *dns.Msg, t map[string]string) error {
+	for _, q := range m.Question {
+		if q.Qtype != dns.TypeA {
+			continue
+		}
+		for k, v := range t {
+			if q.Name == k || q.Name == k+"." {
+				rr, err := NewRR(q.Name, enums.DnsTypes[dns.TypeA], v)
+				if err != nil {
+					return err
+				}
+				m.Answer = append(m.Answer, rr)
+				break
+			}
+		}
+	}
+	return nil
+}
+
 func (h *Handler) HandleDnsReq(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg).SetReply(r)
 	m.Compress = false
@@ -121,11 +143,31 @@ func (h *Handler) HandleDnsReq(w dns.ResponseWriter, r *dns.Msg) {
 
 	switch r.Opcode {
 	case dns.OpcodeQuery:
-		if err := h.Action(m); err != nil {
-			log.Println("Action error:", err.Error())
+		if err := h.Handle(m); err != nil {
+			log.Println("Handle error:", err.Error())
 		}
 	}
 	w.WriteMsg(m)
+}
+
+func (h *Handler) HandleLocalDnsReq(w dns.ResponseWriter, r *dns.Msg) {
+	m := new(dns.Msg).SetReply(r)
+	m.Compress = false
+
+	b, err := os.ReadFile(h.Config.HostsFile)
+	if err != nil {
+		log.Printf("failed to read hosts file %s: %v", h.Config.HostsFile, err.Error())
+	}
+	var table = make(map[string]string)
+	if err := json.Unmarshal(b, &table); err != nil {
+		log.Printf("failed to parse hosts file %s: %v", h.Config.HostsFile, err.Error())
+	}
+	if err := h.HandleLocal(m, table); err != nil {
+		log.Println("HandleLocal error:", err.Error())
+	}
+	if err := w.WriteMsg(m); err != nil {
+		log.Println("Error writing reply", err.Error())
+	}
 }
 
 func (h *Handler) Start() error {
