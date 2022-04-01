@@ -1,5 +1,6 @@
 package handler
 
+// TODO: complete this list
 var dnsTypes = map[uint16]string{
 	1:   "A",
 	2:   "NS",

@@ -7,14 +7,16 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/artnoi43/stubborn/lib/cacher"
+	"github.com/artnoi43/stubborn/lib/dnsserver"
 	"github.com/artnoi43/stubborn/lib/handler"
 	"github.com/artnoi43/stubborn/lib/rediswrapper"
 )
 
 type Config struct {
-	ServerConfig handler.Config      `mapstructure:"server"`
-	CacherConfig cacher.Config       `mapstructure:"cacher"`
-	RedisConfig  rediswrapper.Config `mapstructure:"redis"`
+	ServerConfig  dnsserver.Config    `mapstructure:"server"`
+	CacherConfig  cacher.Config       `mapstructure:"cacher"`
+	RedisConfig   rediswrapper.Config `mapstructure:"redis"`
+	HandlerConfig handler.Config      `mapstructure:"handler"`
 }
 
 type Location struct {
@@ -36,9 +38,10 @@ func ParsePath(rawPath string) *Location {
 
 func InitConfig(dir string, file string, ext string) (conf *Config, err error) {
 	// Defaults
+	viper.SetDefault("handler.hosts_file", "./config/table.json")
+	viper.SetDefault("handler.all_types", true)
 	viper.SetDefault("server.address", "127.0.0.1:5300")
 	viper.SetDefault("server.protocol", "udp")
-	viper.SetDefault("server.alltypes", true)
 	viper.SetDefault("cacher.expiration", 300)
 	viper.SetDefault("cacher.cleanup_interval", 600)
 	viper.SetDefault("redis.address", "127.0.0.1:6379")

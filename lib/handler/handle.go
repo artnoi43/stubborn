@@ -17,34 +17,29 @@ import (
 	"github.com/artnoi43/stubborn/lib/enums"
 )
 
-type Handler struct {
-	Ctx       context.Context
-	Config    *Config
-	DnsServer *dns.Server
-	DohClient *doh.DoH
-	Cacher    *cacher.Cacher
+type handler struct {
+	ctx       context.Context
+	config    *Config
+	dnsServer *dns.Server
+	dohClient *doh.DoH
+	cacher    *cacher.Cacher
+	fMap      networkHandleFuncMap
 }
 
 // answerMap maps cache key to answers (domain-type:val)
 type answerMap map[cacher.Key][]string
 
-func NewDNSServer(conf *Config) *dns.Server {
-	return &dns.Server{
-		Addr: conf.Address,
-		Net:  conf.Protocol,
-	}
-}
-
-func New(ctx context.Context, conf *Config, s *dns.Server, h *doh.DoH, c *cacher.Cacher) *Handler {
+func New(ctx context.Context, conf *Config, s *dns.Server, h *doh.DoH, c *cacher.Cacher) *handler {
 	j, _ := json.Marshal(conf)
 	log.Printf("DNS server configuration:\n%s\n", j)
-	return &Handler{
-		Ctx:       ctx,
-		Config:    conf,
-		DnsServer: s,
-		DohClient: h,
-		Cacher:    c,
+	_handler := &handler{
+		ctx:       ctx,
+		config:    conf,
+		dnsServer: s,
+		dohClient: h,
+		cacher:    c,
 	}
+	return _handler.mapFuncs()
 }
 
 // NewRRA returns new RR for supported DNS record types (in dnstypes.go)
@@ -56,8 +51,8 @@ func NewRR(dom string, t string, v string) (dns.RR, error) {
 	return rr, nil
 }
 
-func (h *Handler) Handle(m *dns.Msg) error {
-	dohFunc := dohclient.FuncMap[h.Config.AllTypes]
+func (h *handler) Handle(m *dns.Msg) error {
+	dohFunc := dohclient.FuncMap[h.config.AllTypes]
 	for _, q := range m.Question {
 		// First we look in cache
 		t, supported := dnsTypes[q.Qtype]
@@ -65,7 +60,7 @@ func (h *Handler) Handle(m *dns.Msg) error {
 			return fmt.Errorf("unsupported DNS record type: %d", q.Qtype)
 		}
 		k := cacher.NewKey(q.Name, t, -1)
-		answers, err := h.Cacher.HGet(k)
+		answers, err := h.cacher.HGet(k)
 		if answers != nil && err == nil {
 			for _, answer := range answers {
 				rr, err := NewRR(q.Name, t, answer)
@@ -82,7 +77,7 @@ func (h *Handler) Handle(m *dns.Msg) error {
 			if !supported {
 				return fmt.Errorf("unsupported DNS record type: %d", q.Qtype)
 			}
-			dohAnswers, err := dohFunc(h.Ctx, h.DohClient, dom, dohdns.Type(t))
+			dohAnswers, err := dohFunc(h.ctx, h.dohClient, dom, dohdns.Type(t))
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("failed to get DoH answer for %s", dom))
 			}
@@ -106,7 +101,7 @@ func (h *Handler) Handle(m *dns.Msg) error {
 				answerMap[k] = append(answerMap[k], dohAnswer.Data)
 			}
 			for k, a := range answerMap {
-				if err := h.Cacher.HSet(k, a); err != nil {
+				if err := h.cacher.HSet(k, a); err != nil {
 					return err
 				}
 			}
@@ -116,7 +111,7 @@ func (h *Handler) Handle(m *dns.Msg) error {
 }
 
 // Handle local A record DNS queries
-func (h *Handler) HandleLocal(m *dns.Msg, t map[string]string) error {
+func (h *handler) HandleLocal(m *dns.Msg, t map[string]string) error {
 	for _, q := range m.Question {
 		if q.Qtype != dns.TypeA {
 			continue
@@ -135,7 +130,7 @@ func (h *Handler) HandleLocal(m *dns.Msg, t map[string]string) error {
 	return nil
 }
 
-func (h *Handler) HandleDnsReq(w dns.ResponseWriter, r *dns.Msg) {
+func (h *handler) HandleDnsReq(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg).SetReply(r)
 	m.Compress = false
 	m.RecursionDesired = true
@@ -150,17 +145,17 @@ func (h *Handler) HandleDnsReq(w dns.ResponseWriter, r *dns.Msg) {
 	w.WriteMsg(m)
 }
 
-func (h *Handler) HandleLocalDnsReq(w dns.ResponseWriter, r *dns.Msg) {
+func (h *handler) HandleLocalDnsReq(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg).SetReply(r)
 	m.Compress = false
 
-	b, err := os.ReadFile(h.Config.HostsFile)
+	b, err := os.ReadFile(h.config.HostsFile)
 	if err != nil {
-		log.Printf("failed to read hosts file %s: %v", h.Config.HostsFile, err.Error())
+		log.Printf("failed to read hosts file %s: %v", h.config.HostsFile, err.Error())
 	}
 	var table = make(map[string]string)
 	if err := json.Unmarshal(b, &table); err != nil {
-		log.Printf("failed to parse hosts file %s: %v", h.Config.HostsFile, err.Error())
+		log.Printf("failed to parse hosts file %s: %v", h.config.HostsFile, err.Error())
 	}
 	if err := h.HandleLocal(m, table); err != nil {
 		log.Println("HandleLocal error:", err.Error())
@@ -170,7 +165,15 @@ func (h *Handler) HandleLocalDnsReq(w dns.ResponseWriter, r *dns.Msg) {
 	}
 }
 
-func (h *Handler) Start() error {
-	log.Println("Starting stubborn DNS resolver on", h.Config.Address)
-	return h.DnsServer.ListenAndServe()
+func (h *handler) Start(addr string) error {
+	log.Println("Starting stubborn DNS resolver on", addr)
+	return h.dnsServer.ListenAndServe()
+}
+
+func (h *handler) Shutdown(ctx context.Context) {
+	log.Println("shutting down handlers")
+	h.dohClient.Close()
+	h.cacher.Redis.Cli.FlushDB(ctx)
+	h.cacher.Redis.Cli.Close()
+	log.Println("handlers gracefully shutdowm")
 }
