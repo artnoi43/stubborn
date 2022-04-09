@@ -26,7 +26,7 @@ func (c *cacher) GetRR(k dnsutils.Key) (entity.CachedAnswer, error) {
 }
 
 func (c *cacher) SetMsg(k dnsutils.Key, msg dns.Msg) {
-
+	panic("not implemented")
 }
 
 func (c *cacher) SetRR(k dnsutils.Key, v entity.CachedAnswer) {
