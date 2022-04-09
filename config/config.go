@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
+	"github.com/artnoi43/stubborn/cmd"
 	"github.com/artnoi43/stubborn/data/repository"
 	"github.com/artnoi43/stubborn/domain/usecase/dnsserver"
 	"github.com/artnoi43/stubborn/domain/usecase/handler"
@@ -47,7 +48,7 @@ func InitConfig(confLocation string) (conf *Config, err error) {
 	filename := fileAndExt[0]
 	fileExtension := fileAndExt[1]
 	// Defaults
-	viper.SetDefault("handler.hosts_file", "./config/table.json")
+	viper.SetDefault("handler.hosts_file", cmd.TableLocation)
 	viper.SetDefault("handler.all_types", true)
 	viper.SetDefault("handler.dot.outbound", "DOT")
 	viper.SetDefault("handler.dot.upstream_timeout", 10)

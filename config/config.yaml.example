@@ -1,0 +1,16 @@
+cacher:
+  expiration: 15
+  cleanup: 100
+handler:
+  all_types: true
+  hosts_file: ./config/table.json
+server:
+  address: 127.0.0.1:5300
+  protocol: udp
+handler:
+  outbound: DOT
+  upstream_timeout: 10
+  query_all_types: true
+  upstream_ip: 1.1.1.1
+  upstream_port: 853
+
