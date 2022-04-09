@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"log"
 	"sync"
 
@@ -14,9 +13,6 @@ func (h *handler) HandleWithDoT(w dns.ResponseWriter, r *dns.Msg) {
 	msg.Compress = false
 	msg.RecursionDesired = true
 	msg.RecursionAvailable = true
-
-	ip := h.conf.DoT.UpStreamIp
-	port := h.conf.DoT.UpStreamPort
 
 	var cacheMissed bool
 	var m = make(answerMap)
@@ -31,13 +27,12 @@ func (h *handler) HandleWithDoT(w dns.ResponseWriter, r *dns.Msg) {
 		} else {
 			log.Printf("cache missed for \"%s\" [%s]", k.String(), tString)
 			cacheMissed = true
-			ans, rtt, err := h.dotClient.Exchange(r, fmt.Sprintf("%v:%v", ip, port))
+			ans, rtt, err := h.dotClient.Exchange(r)
 			if err != nil {
 				log.Printf("failed to connect upstream: %v\n", err.Error())
 				return
 			}
-			log.Println(ans, rtt)
-			// log.Printf("answer for '%s' received in %s", q.String(), rtt.String())
+			log.Printf("question: %s rtt: %v", q.String(), rtt)
 			if ans.Answer != nil {
 				msg.Answer = append(msg.Answer, ans.Answer...)
 				m[k] = append(m[k], ans.Answer...)

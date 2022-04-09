@@ -11,8 +11,6 @@ import (
 type dotClient struct {
 	conf   *Config
 	client *dns.Client
-	addr   string
-	port   string
 }
 
 func New(conf *Config) *dotClient {
@@ -34,14 +32,14 @@ func (c *dotClient) Exchange(
 	time.Duration,
 	error,
 ) {
-	s := fmt.Sprintf("%v:%v", c.addr, c.port)
+	s := fmt.Sprintf("%v:%v", c.Addr(), c.Port())
 	return c.client.Exchange(msg, s)
 }
 
 func (c *dotClient) Addr() string {
-	return c.addr
+	return c.conf.UpStreamIp
 }
 
 func (c *dotClient) Port() string {
-	return c.port
+	return c.conf.UpStreamPort
 }

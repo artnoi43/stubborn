@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"net"
-	"time"
 
 	"github.com/likexian/doh-go"
 	"github.com/miekg/dns"
@@ -13,6 +11,7 @@ import (
 	"github.com/artnoi43/stubborn/domain/datagateway"
 	"github.com/artnoi43/stubborn/domain/entity"
 	"github.com/artnoi43/stubborn/domain/usecase/dohclient"
+	"github.com/artnoi43/stubborn/domain/usecase/dotclient"
 )
 
 type handleFunc func(w dns.ResponseWriter, r *dns.Msg)
@@ -34,7 +33,7 @@ type handler struct {
 	conf       *Config
 	repository datagateway.AnswerDataGateway
 	dnsServer  dnsServer
-	dotClient  *dns.Client
+	dotClient  dotClient
 	dohClient  *doh.DoH
 	fMap       networkHandleFuncMap
 }
@@ -52,13 +51,8 @@ func New(ctx context.Context, conf *Config, s dnsServer, c datagateway.AnswerDat
 	// Configure outbound
 	switch conf.Outbound {
 	case entity.OutboundDoT:
-		log.Printf("setting up DoT client")
-		dotClient := new(dns.Client)
-		dotClient.Net = "tcp-tls"
-		dotClient.Dialer = &net.Dialer{
-			Timeout: time.Duration(conf.DoT.UpStreamTimeout) * time.Second,
-		}
-		h.dotClient = dotClient
+		client := dotclient.New(&conf.DoT)
+		h.dotClient = client
 	case entity.OutboundDoH:
 		log.Printf("setting up DoH client")
 		dohClient := dohclient.NewDoH()
