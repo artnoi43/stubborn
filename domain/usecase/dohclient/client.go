@@ -17,8 +17,8 @@ var FuncMap = map[bool]queryFunc{
 	true:  queryAll,
 }
 
-func New() *doh.DoH {
-	return doh.Use(doh.GoogleProvider, doh.CloudflareProvider).EnableCache(true)
+func NewDoH() *doh.DoH {
+	return doh.Use().EnableCache(true)
 }
 
 func query(ctx context.Context, client *doh.DoH, d dns.Domain, t dns.Type) ([]dns.Answer, error) {

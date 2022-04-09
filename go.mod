@@ -3,7 +3,7 @@ module github.com/artnoi43/stubborn
 go 1.18
 
 require (
-	github.com/go-redis/redis/v8 v8.11.5
+	github.com/artnoi43/mgl v0.0.0-20220406184722-c37686b84a54
 	github.com/likexian/doh-go v0.6.4
 	github.com/miekg/dns v1.1.48
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -12,8 +12,6 @@ require (
 )
 
 require (
-	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/likexian/gokit v0.25.6 // indirect
@@ -26,8 +24,8 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
-	golang.org/x/net v0.0.0-20220403103023-749bd193bc2b // indirect
-	golang.org/x/sys v0.0.0-20220406163625-3f8b81556e12 // indirect
+	golang.org/x/net v0.0.0-20220407224826-aac1ed45d8e3 // indirect
+	golang.org/x/sys v0.0.0-20220408201424-a24fb2fb8a0f // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.10 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect

@@ -1,22 +1,24 @@
 package config
 
 import (
+	"fmt"
+	"log"
+	"path"
 	"path/filepath"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	"github.com/artnoi43/stubborn/lib/cacher"
-	"github.com/artnoi43/stubborn/lib/dnsserver"
-	"github.com/artnoi43/stubborn/lib/handler"
-	"github.com/artnoi43/stubborn/lib/rediswrapper"
+	"github.com/artnoi43/stubborn/data/repository"
+	"github.com/artnoi43/stubborn/domain/usecase/dnsserver"
+	"github.com/artnoi43/stubborn/domain/usecase/handler"
 )
 
 type Config struct {
-	ServerConfig  dnsserver.Config    `mapstructure:"server"`
-	CacherConfig  cacher.Config       `mapstructure:"cacher"`
-	RedisConfig   rediswrapper.Config `mapstructure:"redis"`
-	HandlerConfig handler.Config      `mapstructure:"handler"`
+	ServerConfig  dnsserver.Config  `mapstructure:"server"`
+	CacherConfig  repository.Config `mapstructure:"cacher"`
+	HandlerConfig handler.Config    `mapstructure:"handler"`
 }
 
 type Location struct {
@@ -36,32 +38,44 @@ func ParsePath(rawPath string) *Location {
 	}
 }
 
-func InitConfig(dir string, file string, ext string) (conf *Config, err error) {
+func InitConfig(confLocation string) (conf *Config, err error) {
+	dir, fullFilename := path.Split(confLocation)
+	fileAndExt := strings.Split(fullFilename, ".")
+	if len(fileAndExt) < 2 {
+		log.Fatalln("bad config file location:", confLocation)
+	}
+	filename := fileAndExt[0]
+	fileExtension := fileAndExt[1]
 	// Defaults
 	viper.SetDefault("handler.hosts_file", "./config/table.json")
 	viper.SetDefault("handler.all_types", true)
+	viper.SetDefault("handler.dot.outbound", "DOT")
+	viper.SetDefault("handler.dot.upstream_timeout", 10)
+	viper.SetDefault("handler.dot.upstream_ip", "1.1.1.1")
+	viper.SetDefault("handler.dot.upstream_port", "853")
 	viper.SetDefault("server.address", "127.0.0.1:5300")
 	viper.SetDefault("server.protocol", "udp")
 	viper.SetDefault("cacher.expiration", 300)
-	viper.SetDefault("cacher.cleanup_interval", 600)
-	viper.SetDefault("redis.address", "127.0.0.1:6379")
-	viper.SetDefault("redis.username", "")
-	viper.SetDefault("redis.password", "")
-	viper.SetDefault("redis.db", 1)
+	viper.SetDefault("cacher.cleanup", 600)
 
-	err = loadConf(dir, file, ext)
+	err = loadConf(dir, filename, fileExtension)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error loading config file")
 	}
-	conf, err = unmarshal()
+	err = viper.Unmarshal(&conf)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error parsing config file")
+	}
+	if !conf.HandlerConfig.Outbound.IsValid() {
+		// For readability
+		msg := "bad outbound in config file\noutbound: \"%s\"\nconfig location: %s\n"
+		return nil, fmt.Errorf(msg, conf.HandlerConfig.Outbound, confLocation)
 	}
 	return conf, nil
 }
 
 func loadConf(dir string, file string, ext string) error {
-	// Default config file dir is $HOME/config/fngobot
+	// Default config file dir is /etc/stubborn/config.yaml
 	// From CLI: -c <path>
 	viper.AddConfigPath(dir)
 	viper.SetConfigName(file)
@@ -80,12 +94,4 @@ func loadConf(dir string, file string, ext string) error {
 		}
 	}
 	return nil
-}
-
-func unmarshal() (conf *Config, err error) {
-	err = viper.Unmarshal(&conf)
-	if err != nil {
-		return nil, err
-	}
-	return conf, nil
 }
