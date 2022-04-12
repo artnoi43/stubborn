@@ -1,0 +1,5 @@
+{
+    "192.168.1.69": ["pc.local", "mac.local"],
+    "192.168.1.112": ["myserver.local"],
+    "192.168.1.4": ["myprintter.local"]
+}

@@ -1,0 +1,18 @@
+cacher:
+  expiration: 300
+  cleanup: 600
+server:
+  address: 127.0.0.1:5300
+handler:
+  hosts_file: "/etc/stubborn/table.json"
+  query_all_types: true
+  outbound: DOH
+  dot:
+    upstream_timeout: 10
+    upstream_ip: 1.1.1.1
+    upstream_port: 853
+  doh:
+    # see valid upstream in file domain/usecase/dohclient/config.go
+    upstream:
+      - cloudflare
+      - quad9
