@@ -11,7 +11,7 @@ import (
 
 	"github.com/artnoi43/stubborn/cmd"
 	"github.com/artnoi43/stubborn/data/repository"
-	"github.com/artnoi43/stubborn/domain/entity"
+	"github.com/artnoi43/stubborn/domain/usecase"
 	"github.com/artnoi43/stubborn/domain/usecase/dnsserver"
 	"github.com/artnoi43/stubborn/domain/usecase/handler"
 	"github.com/artnoi43/stubborn/lib"
@@ -73,10 +73,10 @@ func InitConfig(f cmd.Flags) (conf *Config, err error) {
 		conf.HandlerConfig.HostsFile = t
 	}
 	// Overwrite outbound DNS value (DOT/DOH)
-	if f.EntityOutbound != entity.InvalidOutbound {
+	if f.EntityOutbound != usecase.InvalidOutbound {
 		conf.HandlerConfig.EntityOutbound = f.EntityOutbound
 	} else {
-		conf.HandlerConfig.EntityOutbound = entity.OutboundFromString(conf.HandlerConfig.Outbound)
+		conf.HandlerConfig.EntityOutbound = usecase.OutboundFromString(conf.HandlerConfig.Outbound)
 	}
 	mustCheck := []lib.MustCheck{
 		conf.HandlerConfig.EntityOutbound,

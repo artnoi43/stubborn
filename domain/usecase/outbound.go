@@ -1,4 +1,4 @@
-package entity
+package usecase
 
 import "github.com/artnoi43/mgl/str"
 

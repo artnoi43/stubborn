@@ -3,13 +3,13 @@ package cmd
 import (
 	"flag"
 
-	"github.com/artnoi43/stubborn/domain/entity"
+	"github.com/artnoi43/stubborn/domain/usecase"
 )
 
 type Flags struct {
 	ConfigFile     string
 	TableFile      string
-	EntityOutbound entity.Outbound
+	EntityOutbound usecase.Outbound
 	outbound       string // Just for parsing
 }
 
@@ -22,6 +22,6 @@ func (f *Flags) Parse() {
 	flag.Parse()
 
 	if f.outbound != "" {
-		f.EntityOutbound = entity.OutboundFromString(f.outbound)
+		f.EntityOutbound = usecase.OutboundFromString(f.outbound)
 	}
 }

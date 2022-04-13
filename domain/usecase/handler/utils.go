@@ -5,19 +5,19 @@ import (
 
 	"github.com/miekg/dns"
 
-	"github.com/artnoi43/stubborn/domain/entity"
+	"github.com/artnoi43/stubborn/domain/usecase"
 	"github.com/artnoi43/stubborn/domain/usecase/clients/dohclient"
 )
 
 func (h *handler) inputsFromQuestion(q *dns.Question) *clientInputs {
 	switch h.conf.EntityOutbound {
-	case entity.OutboundDoT:
+	case usecase.OutboundDoT:
 		m := new(dns.Msg).SetQuestion(q.Name, q.Qtype)
 		return &clientInputs{
 			dotInput:  m,
 			jsonInput: q.Name,
 		}
-	case entity.OutboundDoH:
+	case usecase.OutboundDoH:
 		return &clientInputs{
 			dohInput: &dohclient.Input{
 				Ctx:      context.Background(),
@@ -34,9 +34,9 @@ func (h *handler) inputsFromQuestion(q *dns.Question) *clientInputs {
 func (h *handler) selectInput(input *clientInputs, isLocal bool) interface{} {
 	var thisInput interface{}
 	switch h.conf.EntityOutbound {
-	case entity.OutboundDoT:
+	case usecase.OutboundDoT:
 		thisInput = input.dotInput
-	case entity.OutboundDoH:
+	case usecase.OutboundDoH:
 		thisInput = input.dohInput
 	}
 	return thisInput

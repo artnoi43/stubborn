@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/artnoi43/stubborn/domain/entity"
+	"github.com/artnoi43/stubborn/domain/usecase"
 )
 
 type dnsServer interface {
@@ -11,6 +11,6 @@ type dnsServer interface {
 }
 
 type dnsClient interface {
-	Query(v interface{}) (*entity.Answer, error)
+	Query(v interface{}) (*usecase.Answer, error)
 	Shutdown()
 }

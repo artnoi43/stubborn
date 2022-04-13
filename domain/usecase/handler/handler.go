@@ -7,8 +7,7 @@ import (
 
 	"github.com/miekg/dns"
 
-	"github.com/artnoi43/stubborn/domain/datagateway"
-	"github.com/artnoi43/stubborn/domain/entity"
+	"github.com/artnoi43/stubborn/domain/usecase"
 	"github.com/artnoi43/stubborn/domain/usecase/clients/dohclient"
 	"github.com/artnoi43/stubborn/domain/usecase/clients/dotclient"
 	"github.com/artnoi43/stubborn/domain/usecase/clients/localclient"
@@ -16,12 +15,12 @@ import (
 
 type handleFunc func(w dns.ResponseWriter, r *dns.Msg)
 
-type networkHandleFuncMap map[entity.Outbound]map[entity.Network]handleFunc
+type networkHandleFuncMap map[usecase.Outbound]map[usecase.Network]handleFunc
 
 type Handler interface {
 	// HandlerFunc determines which handlerFunc to use
 	// based on outbound and network config
-	// HandlerFunc(entity.Outbound, entity.Network) handleFunc
+	// HandlerFunc(usecase.Outbound, usecase.Network) handleFunc
 	Start() error
 	Shutdown()
 }
@@ -30,13 +29,13 @@ type Handler interface {
 type handler struct {
 	ctx        context.Context
 	conf       *Config
-	repository datagateway.AnswerDataGateway
+	repository usecase.AnswerDataGateway
 	dnsServer  dnsServer
 	dnsClient  dnsClient
 	jsonClient dnsClient
 }
 
-func New(ctx context.Context, conf *Config, s dnsServer, c datagateway.AnswerDataGateway) *handler {
+func New(ctx context.Context, conf *Config, s dnsServer, c usecase.AnswerDataGateway) *handler {
 	j, _ := json.MarshalIndent(conf, "", "  ")
 	log.Printf("stubborn configuration:\n%s\n", j)
 	// Base handler (w/o outbound)
@@ -50,10 +49,10 @@ func New(ctx context.Context, conf *Config, s dnsServer, c datagateway.AnswerDat
 	}
 	// Configure outbound
 	switch conf.EntityOutbound {
-	case entity.OutboundDoT:
+	case usecase.OutboundDoT:
 		log.Println("setting up DoT client")
 		h.dnsClient = dotclient.New(&conf.DoT)
-	case entity.OutboundDoH:
+	case usecase.OutboundDoH:
 		log.Println("setting up DoH client")
 		h.dnsClient = dohclient.New(conf.DoH.Upstream)
 	}

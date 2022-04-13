@@ -7,18 +7,18 @@ import (
 
 	"github.com/miekg/dns"
 
-	"github.com/artnoi43/stubborn/domain/entity"
+	"github.com/artnoi43/stubborn/domain/usecase"
 	"github.com/artnoi43/stubborn/lib/dnsutils"
 )
 
-func (j *jsonClient) Query(v interface{}) (*entity.Answer, error) {
+func (j *jsonClient) Query(v interface{}) (*usecase.Answer, error) {
 	if name, ok := v.(string); ok {
 		return j.QueryUsecase(name)
 	}
 	return nil, fmt.Errorf("invalid input type %s - expecting string", reflect.TypeOf(v))
 }
 
-func (j *jsonClient) QueryUsecase(name string) (*entity.Answer, error) {
+func (j *jsonClient) QueryUsecase(name string) (*usecase.Answer, error) {
 	start := time.Now()
 	var rrs []dns.RR
 	for addr, hostnames := range localNetworkTable {
@@ -36,7 +36,7 @@ func (j *jsonClient) QueryUsecase(name string) (*entity.Answer, error) {
 			}
 		}
 	}
-	return &entity.Answer{
+	return &usecase.Answer{
 		RRs: rrs,
 		RTT: time.Since(start),
 	}, nil

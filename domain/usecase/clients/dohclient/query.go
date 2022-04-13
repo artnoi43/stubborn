@@ -10,7 +10,7 @@ import (
 	"github.com/miekg/dns"
 	"github.com/pkg/errors"
 
-	"github.com/artnoi43/stubborn/domain/entity"
+	"github.com/artnoi43/stubborn/domain/usecase"
 	"github.com/artnoi43/stubborn/lib/dnsutils"
 )
 
@@ -21,7 +21,7 @@ type Input struct {
 	AllTypes bool
 }
 
-func (c *dohClient) Query(v interface{}) (*entity.Answer, error) {
+func (c *dohClient) Query(v interface{}) (*usecase.Answer, error) {
 	if input, ok := v.(*Input); ok {
 		return c.QueryUsecase(input)
 	}
@@ -31,7 +31,7 @@ func (c *dohClient) Query(v interface{}) (*entity.Answer, error) {
 func (c *dohClient) QueryUsecase(
 	input *Input,
 ) (
-	*entity.Answer,
+	*usecase.Answer,
 	error,
 ) {
 	start := time.Now()
@@ -58,7 +58,7 @@ func (c *dohClient) QueryUsecase(
 		}
 		rrs = append(rrs, rr)
 	}
-	return &entity.Answer{
+	return &usecase.Answer{
 		RRs: rrs,
 		RTT: time.Since(start),
 	}, nil

@@ -1,4 +1,4 @@
-package entity
+package usecase
 
 // Network is an enum used during path registration.
 type Network int

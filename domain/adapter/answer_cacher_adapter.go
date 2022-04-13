@@ -6,7 +6,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/artnoi43/stubborn/data/repository"
-	"github.com/artnoi43/stubborn/domain/datagateway"
 	"github.com/artnoi43/stubborn/domain/usecase"
 )
 
@@ -24,7 +23,7 @@ const (
 // New returns answerCacherAdapter,
 // which implements datagateway.AnswerDataGateway
 // using repository.Cacher as the implementation.
-func New(conf *repository.Config) datagateway.AnswerDataGateway {
+func New(conf *repository.Config) *answerCacherAdapter {
 	c := repository.New(conf)
 	return &answerCacherAdapter{
 		cacher: c,
