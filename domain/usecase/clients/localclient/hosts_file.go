@@ -19,6 +19,7 @@ var localNetworkTable localDnsTable
 func InitTable(tableFile string) {
 	// Using concurrency to read and parse into
 	// the same map will slow this down 2-3x
+	localNetworkTable = make(localDnsTable)
 	initJsonTable(tableFile)
 	initFromEtcHostsFile()
 }
@@ -26,7 +27,6 @@ func InitTable(tableFile string) {
 // initJsonTable parses stubborn's JSON hosts file.
 // File location is specified in the config file, or via the command-line.
 func initJsonTable(tableFile string) {
-	localNetworkTable = make(localDnsTable)
 	fp, err := os.Open(tableFile)
 	if err != nil {
 		log.Panicf("failed to open hosts file %s: %s\n", tableFile, err.Error())
@@ -59,7 +59,7 @@ func initFromEtcHostsFile() {
 					continue
 				}
 				for _, hostname := range hostnames {
-					localNetworkTable[ip] = append(localNetworkTable[hostname], hostname)
+					localNetworkTable[ip] = append(localNetworkTable[ip], hostname)
 				}
 			}
 		}
